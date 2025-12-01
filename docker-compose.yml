@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  login:
+    build: ./login
+    container_name: modulo2_login
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+    # Não expõe porta para o host. O serviço só será acessível via gateway.
+    networks:
+      - internal
+
+  gateway:
+    build: ./gateway
+    container_name: modulo2_gateway
+    depends_on:
+      - login
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+    ports:
+      - "8080:8080"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
