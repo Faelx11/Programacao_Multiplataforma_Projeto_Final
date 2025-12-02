@@ -1,0 +1,2 @@
+com\example\consumer2\Consumer2Application.class
+com\example\consumer2\kafka\MessageListener.class

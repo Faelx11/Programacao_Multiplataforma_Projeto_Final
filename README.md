@@ -1,40 +1,60 @@
-# Módulo 3 – Função Lambda com Kafka
+# Módulo 4 – Kafka com Produtor e Consumidores
 
-O terceiro módulo propõe a criação de uma **função AWS Lambda** (em JavaScript) que consome mensagens de um tópico Kafka e registra cada uma delas no console. Em seguida, essa função é empacotada em uma imagem Docker e publicada no DockerHub por meio de uma GitHub Action.
+Este módulo contém três aplicações **Spring Boot** que interagem via **Kafka**:
 
-## Estrutura
+* **Produtor** – expõe um endpoint REST para envio de mensagens ao tópico `mensagens`.
+* **Consumidor 1** – ouve o tópico e registra cada mensagem recebida.
+* **Consumidor 2** – também ouve o mesmo tópico e registra as mensagens. Os consumidores possuem *group IDs* diferentes para que **ambos** recebam todas as mensagens.
 
-| Arquivo | Descrição |
-|--------|-----------|
-| `index.js` | Contém a função `handler` que recebe um evento no formato de trigger do AWS MSK e imprime as mensagens recebidas. |
-| `Dockerfile` | Define a imagem baseada em `public.ecr.aws/lambda/nodejs:18` utilizada para executar a função como contêiner. |
-| `.github/workflows/docker-image.yml` | Workflow do GitHub Actions responsável por construir e enviar a imagem ao DockerHub sempre que houver push para a branch `main` dentro do módulo 3. |
+O ambiente inclui um cluster Kafka com **três brokers** e **cinco partições** configuradas no tópico, garantindo resiliência e maior paralelismo.
 
-## Executando localmente
+## Requisitos atendidos
 
-Para testar a função localmente dentro de um contêiner Docker:
+| Requisito | Implementação |
+|-----------|--------------|
+| Mensagem enviada pelo produtor é consumida por duas aplicações | Os consumidores utilizam group IDs diferentes (`consumer1-group` e `consumer2-group`), o que faz com que cada mensagem seja entregue a ambos. |
+| Configuração correta de Group ID | Definido explicitamente nos listeners e nas propriedades das aplicações consumidoras. |
+| Resiliência com três brokers Kafka | O `docker-compose.yml` define três serviços Kafka (`kafka1`, `kafka2`, `kafka3`) interligados a um Zookeeper, proporcionando tolerância a falhas. |
+| Cinco partições | O produtor cria o tópico `mensagens` com 5 partições e replicação fator 3 via classe `KafkaConfig`. |
+
+## Execução
+
+Para levantar o ambiente completo é necessário **Docker** e **Docker Compose**. Navegue até a pasta `modulo4` e execute:
 
 ```bash
-docker build -t modulo3-lambda:latest .
-
-# Exemplo de execução local usando a interface do AWS Lambda para contêiner
-docker run -p 9000:8080 modulo3-lambda:latest
-
-# Em outro terminal, envie um evento de teste
-curl -X POST "http://localhost:9000/2015-03-31/functions/function/invocations" -H "Content-Type: application/json" -d "{\"records\":{\"meu-topico-1\":[{\"value\":\"SGVsbG8gS2Fma2Eh\"}]}}"
-
+docker compose up --build
 ```
 
-O contêiner imprimirá no console: `A mensagem chegou: mensagem de exemplo!`.
+Os serviços subirão nas portas:
 
-## Publicação no DockerHub
+| Serviço     | Porta |
+|-------------|-------|
+| Produtor    | 8080  |
+| Consumidor1 | 8081  |
+| Consumidor2 | 8082  |
+| Kafka brokers | 9092, 9093, 9094 |
+| Zookeeper   | 2181 |
 
-O workflow em `.github/workflows/docker-image.yml` automatiza a construção e envio da imagem. Para utilizar:
+### Enviando mensagens
 
-1. Crie repositório no GitHub e adicione os arquivos deste módulo.
-2. Configure os *secrets* `DOCKERHUB_USERNAME` e `DOCKERHUB_TOKEN` nas configurações do repositório.
-3. Faça push para a branch `main`. O GitHub Actions irá construir a imagem e publicá-la em `docker.io/&lt;seu usuário&gt;/modulo3-lambda:latest`.
+Com o cluster em execução, envie uma mensagem por meio do produtor:
+
+```
+curl "http://localhost:8080/send?message=Olá%20Kafka"
+```
+
+Tanto o **Consumidor 1** quanto o **Consumidor 2** exibirão no console uma linha semelhante a:
+
+```
+Consumidor 1 recebeu: Olá Kafka
+```
+
+e
+
+```
+Consumidor 2 recebeu: Olá Kafka
+```
 
 ---
 
-© 2025 – Módulo 3 do projeto final
+© 2025 – Módulo 4 do projeto final
