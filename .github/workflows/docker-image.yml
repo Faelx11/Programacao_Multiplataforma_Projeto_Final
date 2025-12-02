@@ -5,7 +5,7 @@ on:
     branches:
       - Terceiro-Módulo
     paths:
-      - 'modulo3/**'
+      - '**'
       - '.github/workflows/docker-image.yml'
   workflow_dispatch:
 
@@ -35,7 +35,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
-          context: ./modulo3
+          context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
